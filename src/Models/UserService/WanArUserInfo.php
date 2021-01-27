@@ -27,11 +27,17 @@ class WanArUserInfo extends \CActiveRecord
     ];
 
     // status 字段的枚举
+    const USER_STATUS_INVALID = 2;
+    const USER_STATUS_CANCELED = 3;
     const USER_STATUS_ALL = [
         ['value' => 1, 'text' => '正常'],
-        ['value' => 2, 'text' => '禁用'],
-        ['value' => 3, 'text' => '已注销'],
+        ['value' => self::USER_STATUS_INVALID, 'text' => '禁用'],
+        ['value' => self::USER_STATUS_CANCELED, 'text' => '已注销'],
     ];
+
+    // del_flag：0正常 1-逻辑删除
+    const DEL_FALG_YES = 1;
+    const DEL_FALG_NO = 1;
 
     /**
      * 获取多个用户ID对应的用户记录
@@ -115,5 +121,46 @@ class WanArUserInfo extends \CActiveRecord
                 ':account' => $str
             ]
         ]);
+    }
+
+    /**
+     * 通过电话获取一个用户
+     * @param $phone
+     * @param string $select
+     * @return mixed
+     */
+    public function getByPhone($phone, $select='user_id, status, cancel_status, del_flag')
+    {
+        return self::model()->find([
+            'select' => $select,
+            'condition' => 'phone = :phone',
+            'params' => [
+                ':phone' => $phone
+            ]
+        ]);
+    }
+
+    /**
+     * 一个用户是否合法
+     * @param CActiveRecord $user
+     * @return bool|string
+     *      string：不合法的原因
+     *      bool：只可能是 true
+     */
+    public function isUserValid(CActiveRecord $user)
+    {
+        if (empty($user)) {
+            return '用户不存在';
+        }
+        if ($user['status'] == self::USER_STATUS_INVALID) {
+            return '用户已被禁用';
+        }
+        if ($user['status'] == self::USER_STATUS_CANCELED) {
+            return '用户已注销';
+        }
+        if ($user['del_flag'] == self::DEL_FALG_YES) {
+            return '用户已被逻辑删除';
+        }
+        return true;
     }
 }
